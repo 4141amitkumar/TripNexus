@@ -80,35 +80,39 @@ const FormPage = () => {
       }
 
       // Save to backend users table
-      await fetch("http://localhost:5000/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          first_name: formData.name.split(" ")[0] || formData.name,
-          last_name: formData.name.split(" ")[1] || "",
-          age: formData.age,
-          gender: formData.gender,
-        }),
-      });
+      const API_URL = process.env.REACT_APP_API_URL;
 
-      // Call recommend API
-      const travel_month_num = new Date(`${formData.month} 1, 2025`).getMonth() + 1;
-      const recommendRes = await fetch("http://localhost:5000/api/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          departure_lat: locationCoords?.lat,
-          departure_lng: locationCoords?.lng,
-          age: formData.age,
-          gender: formData.gender,
-          budget: formData.budget,
-          tourist_type: formData.tripType,
-          travel_month_num,
-          preferred_type: formData.type,
-          duration_days: formData.duration,
-        }),
-      });
+// Save to backend users table
+await fetch(`${API_URL}/api/users`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    email: formData.email,
+    first_name: formData.name.split(" ")[0] || formData.name,
+    last_name: formData.name.split(" ")[1] || "",
+    age: formData.age,
+    gender: formData.gender,
+  }),
+});
+
+// Call recommend API
+const travel_month_num = new Date(`${formData.month} 1, 2025`).getMonth() + 1;
+const recommendRes = await fetch(`${API_URL}/api/recommend`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    departure_lat: locationCoords?.lat,
+    departure_lng: locationCoords?.lng,
+    age: formData.age,
+    gender: formData.gender,
+    budget: formData.budget,
+    tourist_type: formData.tripType,
+    travel_month_num,
+    preferred_type: formData.type,
+    duration_days: formData.duration,
+  }),
+});
+
 
       const recommendations = await recommendRes.json();
       localStorage.setItem("recommendations", JSON.stringify(recommendations));
