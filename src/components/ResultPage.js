@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/ResultPage.css";
-
+const API_URL = process.env.REACT_APP_API_URL;
 const ResultPage = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
@@ -26,7 +26,7 @@ const ResultPage = () => {
     } else {
       // Otherwise, fetch from backend
       const travel_month_num = new Date(`${data.month} 1, 2025`).getMonth() + 1;
-      fetch("http://localhost:5000/api/recommend", {
+      fetch(`${API_URL}/api/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -63,7 +63,7 @@ const ResultPage = () => {
       const enriched = await Promise.all(
         places.map(async (place) => {
           try {
-            const res = await fetch("http://localhost:5000/api/distance", {
+            const res = await fetch(`${API_URL}/api/distance`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
