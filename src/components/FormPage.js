@@ -16,34 +16,24 @@ const FormPage = () => {
     budget: "",
     tripType: "Solo",
     month: "January",
-    type: "Mountain",
+    type: "Mountain Adventures",
     duration: "",
   });
 
   const [locationCoords, setLocationCoords] = useState(null);
-  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
   const autocompleteRef = useRef(null);
+  const navigate = useNavigate();
 
+  // Get city name from coordinates
   const fetchCityFromCoords = async (lat, lon) => {
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
       );
       const data = await response.json();
-      const {
-        city,
-        town,
-        village,
-        municipality,
-        county,
-        suburb,
-        neighbourhood,
-        state,
-      } = data.address;
-
-      const locality =
-        city || town || village || municipality || county || suburb || neighbourhood || "Unknown";
-
+      const { city, town, village, municipality, county, suburb, neighbourhood, state } = data.address;
+      const locality = city || town || village || municipality || county || suburb || neighbourhood || "Unknown";
       const locationText = [locality, state].filter(Boolean).join(", ");
       setFormData((prev) => ({ ...prev, location: locationText }));
     } catch (err) {
@@ -69,19 +59,18 @@ const FormPage = () => {
     );
   }, []);
 
-  const navigate = useNavigate();
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!formData.location) {
       alert("Please enter your departure point manually or enable location access.");
       return;
     }
+
+    setLoading(true);
 
     try {
       // Save locally
@@ -90,27 +79,46 @@ const FormPage = () => {
         localStorage.setItem("userLocation", JSON.stringify(locationCoords));
       }
 
-      // Send to backend
-      const res = await fetch("http://localhost:5000/api/users", {
+      // Save to backend users table
+      await fetch("http://localhost:5000/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: formData.name,
           email: formData.email,
+          first_name: formData.name.split(" ")[0] || formData.name,
+          last_name: formData.name.split(" ")[1] || "",
+          age: formData.age,
+          gender: formData.gender,
         }),
       });
 
-      if (res.ok) {
-        setSuccess(true);
-        setFormData((prev) => ({ ...prev, name: "", email: "" }));
-      } else {
-        alert("Failed to save user on server.");
-      }
+      // Call recommend API
+      const travel_month_num = new Date(`${formData.month} 1, 2025`).getMonth() + 1;
+      const recommendRes = await fetch("http://localhost:5000/api/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          departure_lat: locationCoords?.lat,
+          departure_lng: locationCoords?.lng,
+          age: formData.age,
+          gender: formData.gender,
+          budget: formData.budget,
+          tourist_type: formData.tripType,
+          travel_month_num,
+          preferred_type: formData.type,
+          duration_days: formData.duration,
+        }),
+      });
+
+      const recommendations = await recommendRes.json();
+      localStorage.setItem("recommendations", JSON.stringify(recommendations));
 
       navigate("/results");
     } catch (err) {
-      console.error("Error saving user:", err);
-      alert("Error saving user data.");
+      console.error("Error submitting form:", err);
+      alert("Error fetching recommendations.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -123,11 +131,7 @@ const FormPage = () => {
           lng: place.geometry.location.lng(),
         };
 
-        setFormData((prev) => ({
-          ...prev,
-          location: place.formatted_address,
-        }));
-
+        setFormData((prev) => ({ ...prev, location: place.formatted_address }));
         setLocationCoords(coords);
         localStorage.setItem("userLocation", JSON.stringify(coords));
       }
@@ -147,71 +151,30 @@ const FormPage = () => {
       <div className="form-wrapper">
         <h1 className="title">TripNexus: Smart Travel Planner</h1>
         <form onSubmit={handleSubmit} className="form-grid">
-
-          {/* Name */}
           <div className="form-group">
             <label>Name:</label>
-            <input
-              type="text"
-              id="name"
-              required
-              value={formData.name}
-              onChange={handleChange}
-              placeholder={placeholders.name}
-            />
+            <input type="text" id="name" required value={formData.name} onChange={handleChange} placeholder={placeholders.name} />
           </div>
 
-          {/* Email */}
           <div className="form-group">
             <label>Email:</label>
-            <input
-              type="email"
-              id="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              placeholder={placeholders.email}
-            />
+            <input type="email" id="email" required value={formData.email} onChange={handleChange} placeholder={placeholders.email} />
           </div>
 
-          {/* Location with Autocomplete */}
           <div className="form-group">
             <label>Departure Point:</label>
-            <Autocomplete
-              onLoad={(autocomplete) => (autocompleteRef.current = autocomplete)}
-              onPlaceChanged={handlePlaceChanged}
-            >
-              <input
-                type="text"
-                id="location"
-                required
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="Enter your city"
-              />
+            <Autocomplete onLoad={(autocomplete) => (autocompleteRef.current = autocomplete)} onPlaceChanged={handlePlaceChanged}>
+              <input type="text" id="location" required value={formData.location} onChange={handleChange} placeholder="Enter your city" />
             </Autocomplete>
           </div>
 
-          {/* Other inputs */}
-          {[
-            { id: "age", label: "Age", type: "number" },
-            { id: "budget", label: "Budget (₹)", type: "number" },
-            { id: "duration", label: "Trip Duration (days)", type: "number" },
-          ].map(({ id, label, type }) => (
+          {["age", "budget", "duration"].map((id) => (
             <div className="form-group" key={id}>
-              <label>{label}:</label>
-              <input
-                type={type}
-                id={id}
-                required
-                value={formData[id]}
-                onChange={handleChange}
-                placeholder={placeholders[id] || ""}
-              />
+              <label>{id.charAt(0).toUpperCase() + id.slice(1)}:</label>
+              <input type="number" id={id} required value={formData[id]} onChange={handleChange} placeholder={placeholders[id]} />
             </div>
           ))}
 
-          {/* Select dropdowns */}
           <div className="form-group">
             <label>Gender:</label>
             <select id="gender" onChange={handleChange} value={formData.gender}>
@@ -236,11 +199,9 @@ const FormPage = () => {
             <label>Month of Travel:</label>
             <select id="month" onChange={handleChange} value={formData.month}>
               {[
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-              ].map((m) => (
-                <option key={m}>{m}</option>
-              ))}
+                "January","February","March","April","May","June",
+                "July","August","September","October","November","December"
+              ].map((m) => <option key={m}>{m}</option>)}
             </select>
           </div>
 
@@ -260,13 +221,13 @@ const FormPage = () => {
             </select>
           </div>
 
-          <button className="submit-button" type="submit">Find Destinations</button>
+          <button className="submit-button" type="submit" disabled={loading}>
+            {loading ? "Finding..." : "Find Destinations"}
+          </button>
         </form>
-        {success && <p>✅ User saved successfully!</p>}
       </div>
     </LoadScript>
   );
 };
 
 export default FormPage;
-hello
