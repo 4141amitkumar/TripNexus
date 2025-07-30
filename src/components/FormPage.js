@@ -81,6 +81,9 @@ const FormPage = () => {
 
       // Save to backend users table
       const API_URL = process.env.REACT_APP_API_URL;
+      if (!API_URL) {
+  console.error("API_URL not set in environment variables");
+}
 
 // Save to backend users table
 await fetch(`${API_URL}/api/users`, {

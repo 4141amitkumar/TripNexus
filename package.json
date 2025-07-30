@@ -2,6 +2,7 @@
   "name": "tripnexus",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:8080",
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.16.10",
     "@react-google-maps/api": "^2.20.7",
