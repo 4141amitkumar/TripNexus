@@ -11,27 +11,57 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ MySQL connection pool with Railway fallback
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || process.env.MYSQLHOST || "localhost",
-  user: process.env.DB_USER || process.env.MYSQLUSER || "root",
-  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || "",
-  database: process.env.DB_NAME || process.env.MYSQLDATABASE || "tripnexus",
-  port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
+/* ===============================
+   MySQL Connection
+================================*/
+let pool;
 
-// ✅ Debug log (without exposing password)
-console.log("Connecting to DB:", {
-  host: process.env.DB_HOST || process.env.MYSQLHOST,
-  user: process.env.DB_USER || process.env.MYSQLUSER,
-  database: process.env.DB_NAME || process.env.MYSQLDATABASE,
-  port: process.env.DB_PORT || process.env.MYSQLPORT,
-});
+if (process.env.DATABASE_URL || process.env.MYSQL_URL) {
+  // Railway MYSQL_URL parsing
+  const url = new URL(process.env.DATABASE_URL || process.env.MYSQL_URL);
 
-// ✅ DB connection test
+  pool = mysql.createPool({
+    host: url.hostname,
+    user: url.username,
+    password: url.password,
+    database: url.pathname.slice(1),
+    port: url.port,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  });
+
+  console.log("🔗 Connecting with Railway MYSQL_URL");
+  console.log("DB Config:", {
+    host: url.hostname,
+    user: url.username,
+    database: url.pathname.slice(1),
+    port: url.port,
+  });
+
+} else {
+  // Local dev fallback
+  pool = mysql.createPool({
+    host: process.env.DB_HOST || "localhost",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "tripnexus",
+    port: process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  });
+
+  console.log("🔗 Connecting with local .env config");
+  console.log("DB Config:", {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+  });
+}
+
+// ✅ Test DB connection
 (async () => {
   try {
     const connection = await pool.getConnection();
