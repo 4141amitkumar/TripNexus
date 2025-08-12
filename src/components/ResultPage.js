@@ -1,156 +1,123 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "../styles/ResultPage.css";
-const API_URL = process.env.REACT_APP_API_URL;
+// ResultPage.js
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import '../styles/ResultPage.css'; // Make sure you have this CSS file
+
+const DestinationCard = ({ place, rank }) => {
+  console.log("Image URL:", place.image_url);
+  return(<div className="destination-card">
+    <div className="card-rank">#{rank}</div>
+    <img
+      src={place.image_url}
+      alt={place.destination_name}
+      className="card-image"
+    />
+
+    <div className="card-content">
+      <h3 className="card-title">{place.destination_name}, {place.state}</h3>
+      <p className="card-category">{place.category_name}</p>
+      
+      <div className="card-score">
+        <span className="score-badge">⭐ {place.final_score.toFixed(1)}</span>
+        <span className="rating-text">Overall Score</span>
+      </div>
+
+      <div className="card-details">
+        <p><strong>Weather:</strong> {parseFloat(place.avg_temperature).toFixed(1)}°C</p>
+        <p><strong>Distance:</strong> {place.distance_km} km</p>
+        <p><strong>Est. Cost:</strong> ₹{place.estimated_avg_cost.toLocaleString()}</p>
+      </div>
+      
+      <div className="scoring-breakdown">
+        <h4>Scoring Breakdown:</h4>
+        <ul>
+          <li>Qual: {place.scoring_breakdown.quality.toFixed(1)}</li>
+          <li>Weather: {place.scoring_breakdown.weather.toFixed(1)}</li>
+          <li>Dist: {place.scoring_breakdown.distance.toFixed(1)}</li>
+          <li>Pers: {place.scoring_breakdown.personalization.toFixed(1)}</li>
+          <li>Budget: {place.scoring_breakdown.budget.toFixed(1)}</li>
+        </ul>
+      </div>
+    </div>
+  </div>)
+};
+
 const ResultPage = () => {
   const navigate = useNavigate();
-  const [userData, setUserData] = useState(null);
-  const [filteredPlaces, setFilteredPlaces] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
+  const [metadata, setMetadata] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("tripUserData"));
-    const userLocation = JSON.parse(localStorage.getItem("userLocation"));
-    const storedRecommendations = JSON.parse(localStorage.getItem("recommendations"));
-
-    if (!data || !userLocation) {
-      setLoading(false);
-      return;
-    }
-
-    setUserData(data);
-
-    // If recommendations already in localStorage, use them
-    if (storedRecommendations && storedRecommendations.length > 0) {
-      enrichPlacesWithDistance(storedRecommendations, userLocation);
-    } else {
-      // Otherwise, fetch from backend
-      const travel_month_num = new Date(`${data.month} 1, 2025`).getMonth() + 1;
-      fetch(`${API_URL}/api/recommend`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          departure_lat: userLocation.lat,
-          departure_lng: userLocation.lng,
-          age: data.age,
-          gender: data.gender,
-          budget: data.budget,
-          tourist_type: data.tripType,
-          travel_month_num,
-          preferred_type: data.type,
-          duration_days: data.duration,
-        }),
-      })
-        .then((res) => res.json())
-        .then((places) => {
-          if (!places || !places.length) {
-            setFilteredPlaces([]);
-            setLoading(false);
-            return;
-          }
-          localStorage.setItem("recommendations", JSON.stringify(places));
-          enrichPlacesWithDistance(places, userLocation);
-        })
-        .catch((err) => {
-          console.error("Error fetching recommendations:", err);
-          setLoading(false);
-        });
-    }
-  }, []);
-
-  const enrichPlacesWithDistance = async (places, userLocation) => {
+    // This effect runs only once when the component mounts.
+    // Its only job is to read data from the session.
     try {
-      const enriched = await Promise.all(
-        places.map(async (place) => {
-          try {
-            const res = await fetch(`${API_URL}/api/distance`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                origin: userLocation,
-                destination: place.destination_name,
-              }),
-            });
-
-            const distData = await res.json();
-
-            return {
-              ...place,
-              travelCost: distData.travelCost || 0,
-              travelMode: distData.mode || "Unknown",
-              travelTime: distData.duration || "N/A",
-              distanceKm: distData.distanceKm || 0,
-            };
-          } catch (error) {
-            console.error("Error fetching distance:", error);
-            return {
-              ...place,
-              travelCost: 0,
-              travelMode: "Unavailable",
-              travelTime: "N/A",
-              distanceKm: 0,
-            };
+      const storedDataString = sessionStorage.getItem('recommendationResults');
+      console.log('🔍 ResultPage: Reading from sessionStorage...');
+      
+      if (storedDataString) {
+        const parsedData = JSON.parse(storedDataString);
+        console.log('✅ ResultPage: Parsed data from storage:', parsedData);
+        
+        // 🔥 KEY FIX: Correctly access the 'recommendations' array
+        if (parsedData && parsedData.success && Array.isArray(parsedData.recommendations)) {
+          if (parsedData.recommendations.length > 0) {
+            setRecommendations(parsedData.recommendations);
+            setMetadata(parsedData.metadata);
+          } else {
+            setError("We couldn't find any destinations for you. Try different preferences!");
           }
-        })
-      );
-
-      setFilteredPlaces(enriched);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error enriching places:", err);
+        } else {
+          setError('The recommendation data format is incorrect. Please try again.');
+        }
+      } else {
+        setError('No recommendation data found. Please start a new search.');
+      }
+    } catch (e) {
+      console.error('❌ ResultPage: Failed to parse recommendations from storage:', e);
+      setError('A critical error occurred loading results. Please restart your search.');
+    } finally {
       setLoading(false);
     }
-  };
+  }, []); // Empty dependency array ensures this runs only once
 
-  const handleView = (id) => {
-    navigate(`/details/${id}`);
-  };
+  // Render Logic with clear states for loading, error, and success
+  if (loading) {
+    return <div className="status-container"><h2>Loading your personalized results...</h2></div>;
+  }
 
-  if (loading) return <p className="loading">Loading...</p>;
-  if (!userData) return <p className="error">User data not found.</p>;
+  if (error) {
+    return (
+      <div className="status-container error-state">
+        <h2>Oops! An Error Occurred.</h2>
+        <p>{error}</p>
+        <button onClick={() => navigate('/')} className="btn-primary">
+          Start a New Search
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="results-wrapper">
-      <h2 className="results-title">Recommended Places for You</h2>
-      <div className="results-grid">
-        {filteredPlaces.length ? (
-          filteredPlaces.map((place) => (
-            <div key={place.destination_id} className="destination-card">
-              <img
-                src={place.image || "/default-image.jpg"}
-                alt={place.destination_name}
-                className="card-image"
-              />
-              <div className="card-content">
-                <h3>{place.destination_name}</h3>
-                <p>Category: {place.category_name}</p>
-                <p>⭐ Overall Score: {place.overall_score}</p>
-                <p>💰 Estimated Stay: ₹{place.estimated_total_cost}</p>
-                {place.travelCost ? (
-                  <>
-                    <p>🛣️ Distance: {place.distanceKm} km</p>
-                    <p>⏱️ Travel Time: {place.travelTime}</p>
-                    <p>🚍 Mode: {place.travelMode}</p>
-                    <p>
-                      <strong>Total Cost: </strong>₹
-                      {(place.estimated_total_cost || 0) + place.travelCost}
-                    </p>
-                  </>
-                ) : (
-                  <p className="error">❌ Distance info not available</p>
-                )}
-                <button
-                  className="view-button"
-                  onClick={() => handleView(place.destination_id)}
-                >
-                  View Details
-                </button>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="no-results">No recommendations found for your preferences.</p>
+      <div className="results-header">
+        <h2 className="results-title">Your Top {recommendations.length} Recommendations</h2>
+        {metadata && (
+          <p className="results-subtitle">
+            Engine v{metadata.engine_version} found these results for you in {metadata.processing_time_ms}ms
+          </p>
         )}
+      </div>
+      
+      <div className="results-grid">
+        {recommendations.map((place, index) => (
+          <DestinationCard 
+            key={place.destination_id} 
+            place={place} 
+            rank={index + 1}
+          />
+        ))}
       </div>
     </div>
   );
