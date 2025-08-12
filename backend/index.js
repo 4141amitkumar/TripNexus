@@ -23,6 +23,7 @@ app.use(
       process.env.FRONTEND_URL,
       "http://localhost:4000",
       "https://trip-nexus.vercel.app",
+      /\.vercel\.app$/
     ],
     credentials: true,
   })
