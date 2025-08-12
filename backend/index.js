@@ -88,8 +88,8 @@ app.use((err, req, res, next) => {
 });
 
 // --- Server Startup ---
-app.listen(PORT, () => {
-  console.log(`\n🚀 TripNexus Interview-Ready Backend is live on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🚀 TripNexus Interview-Ready Backend is live on http://0.0.0.0:${PORT}`);
   console.log("🔥 Using Hybrid SQL + Node.js Recommendation Engine.");
   console.log("--------------------------------------------------\n");
 });
