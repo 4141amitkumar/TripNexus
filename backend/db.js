@@ -8,8 +8,7 @@ const dbConfig = {
   waitForConnections: true,
   connectionLimit: 20,
   queueLimit: 0,
-  acquireTimeout: 60000,
-  timeout: 60000,
+  connectTimeout: 60000, // ✅ correct name
   charset: 'utf8mb4',
   timezone: '+00:00',
 };
