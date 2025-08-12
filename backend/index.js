@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 8080;
 
 // --- Middleware Setup ---
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:4000",
+  origin: process.env.FRONTEND_URL || "http://localhost:4000" || "https://trip-nexus.vercel.app",
   credentials: true
 }));
 app.use(bodyParser.json());
