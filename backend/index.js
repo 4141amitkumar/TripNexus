@@ -1,70 +1,41 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const pool = require("./db");
-const services = require("./services/recommendationService"); // Correctly import the exported services object
-const { ValidationError } = require("./utils/errors");
+require('dotenv').config(); // Loads variables from backend/.env
+const express = require('express');
+const cors = require('cors');
+const bodyParser = 'body-parser'; // Note: express.json() is now preferred
+const tripRoutes = require('./routes/tripRoutes');
+const authRoutes = require('./routes/authRoutes');
+const { AppError, globalErrorHandler } = require('./utils/errors');
+const logger = require('./utils/logger');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 4001;
 
-// Middleware
+// --- Middleware ---
+// Enable Cross-Origin Resource Sharing for your React app
 app.use(cors());
-app.use(bodyParser.json());
-
-// Routes
-app.post("/api/recommend", async (req, res, next) => {
-  const startTime = Date.now();
-  console.log('Received recommendation request:', req.body);
-  try {
-    // Use the correctly imported service
-    const recommendations = await services.recommendationService.getRecommendations(req.body);
-    const processingTime = Date.now() - startTime;
-    res.json({
-      success: true,
-      metadata: {
-        engine_version: "8.1-Stable",
-        processing_time_ms: processingTime,
-        results_count: recommendations.length,
-      },
-      recommendations,
-    });
-  } catch (error) {
-    next(error);
-  }
+// Parse incoming JSON requests
+app.use(express.json());
+// Log each incoming request
+app.use((req, res, next) => {
+  logger.info(`Incoming Request: ${req.method} ${req.originalUrl}`);
+  next();
 });
 
-app.get("/api/destination/:id", async (req, res, next) => {
-    try {
-        // Use the correctly imported service
-        const details = await services.destinationDetailService.getDestinationDetails(req.params.id, req.query);
-        res.json({ success: true, data: details });
-    } catch (error) {
-        next(error);
-    }
+// --- API Routes ---
+app.use('/api/trips', tripRoutes); // All trip-related routes are in tripRoutes.js
+app.use('/api/auth', authRoutes); // All auth-related routes
+
+// --- Error Handling ---
+// Handle 404 errors for any API route not found
+app.all('/api/*', (req, res, next) => {
+  next(new AppError(`The requested URL was not found on this server: ${req.originalUrl}`, 404));
 });
 
+// Global error handler catches all errors passed by next(error)
+app.use(globalErrorHandler);
 
-app.get("/health", (req, res) => res.status(200).send("OK"));
-
-// Error Handling Middleware
-app.use((err, req, res, next) => {
-  console.error("🚨 An error occurred:", err);
-
-  if (err instanceof ValidationError) {
-    return res.status(400).json({ success: false, message: err.message });
-  }
-
-  res.status(500).json({
-    success: false,
-    message: "Something went wrong on our end.",
-    error: process.env.NODE_ENV === "development" ? err.message : undefined,
-  });
-});
-
-// Start Server
+// --- Start Server ---
 app.listen(PORT, () => {
-  console.log(`🚀 TripNexus backend running on http://localhost:${PORT}`);
+  logger.info(`🚀 Server is listening on http://localhost:${PORT}`);
 });
 
