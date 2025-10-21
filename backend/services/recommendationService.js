@@ -15,12 +15,12 @@
 const pool = require('../db');
 const logger = require('../utils/logger');
 const { ValidationError, DatabaseError } = require('../utils/errors');
-// const redisClient = require('../config/redis'); // UPDATED: Commented out Redis client
+// const redisClient = require('../config/redis');
 require('dotenv').config();
 
 class TripRecommendationService {
   constructor() {
-    this.CACHE_TTL = 3600; // 1 hour cache
+    this.CACHE_TTL = 3600;
     this.MAX_CANDIDATES = 250;
     this.MAX_RECOMMENDATIONS = 30;
     this.NEARBY_RADIUS_KM = 100;
@@ -35,23 +35,12 @@ class TripRecommendationService {
     const startTime = Date.now();
     
     try {
-      // Input validation and sanitization
       const validatedParams = this.validateAndSanitizeParams(params);
       
       logger.info('Starting recommendation generation', { 
         userId: validatedParams.user_id,
         params: validatedParams 
       });
-
-      // UPDATED: Commented out the cache check logic
-      // // Check cache first
-      // const cacheKey = this.generateCacheKey(validatedParams);
-      // const cachedResults = await this.getCachedRecommendations(cacheKey);
-      
-      // if (cachedResults) {
-      //   logger.info('Returning cached recommendations', { cacheKey });
-      //   return cachedResults;
-      // }
 
       // Phase 1: Smart candidate pre-filtering
       const candidates = await this.fetchSmartCandidates(validatedParams);
@@ -69,10 +58,6 @@ class TripRecommendationService {
         scoredRecommendations, 
         validatedParams
       );
-
-      // UPDATED: Commented out the cache saving logic
-      // // Cache results
-      // await this.cacheRecommendations(cacheKey, finalRecommendations);
       
       const executionTime = Date.now() - startTime;
       logger.info('Recommendation generation completed', { 
@@ -87,18 +72,13 @@ class TripRecommendationService {
       throw new DatabaseError('Failed to generate recommendations', error);
     }
   }
-
-  /**
-   * Smart candidate fetching with optimized queries
-   * Uses database indexes effectively and filters early
-   */
   async fetchSmartCandidates(params) {
     const {
       departure_lat,
       departure_lng,
       budget,
       travel_month,
-      preferred_category,
+      preferred_type,
       duration_days,
       age,
       gender,
@@ -224,8 +204,8 @@ class TripRecommendationService {
     const queryParams = [
       travel_month,                    // sw.month
       this.NEARBY_RADIUS_KM,          // nearby attractions radius
-      preferred_category,              // category filter 1
-      preferred_category,              // category filter 2
+      preferred_type,                  // category filter 1
+      preferred_type,                  // category filter 2
       age,                            // elderly accessibility check
       duration_days,                  // hotel cost calculation
       budget,                         // budget constraint
@@ -235,16 +215,12 @@ class TripRecommendationService {
     const [candidates] = await pool.execute(query, queryParams);
     
     logger.info(`Phase 1: Fetched ${candidates.length} smart candidates`, {
-      filters: { preferred_category, budget, duration_days }
+      filters: { preferred_type, budget, duration_days }
     });
 
     return candidates;
   }
 
-  /**
-   * Advanced multi-dimensional scoring algorithm
-   * Considers user demographics, preferences, and constraints
-   */
   async applyIntelligentScoring(candidates, params) {
     const {
       departure_lat,
@@ -271,7 +247,7 @@ class TripRecommendationService {
         personalization: this.calculatePersonalizationScore(destination, params, userHistory), // 20 points
         budgetOptimization: this.calculateBudgetScore(destination, params), // 12 points
         durationMatch: this.calculateDurationScore(destination, duration_days), // 10 points
-        accessibilityBonus: this.calculateAccessibilityScore(destination, age), // 5 points
+        accessibilityBonus: this.calculateAccessibilityScore(destination, age), // 5 points,
       };
 
       const finalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
@@ -279,9 +255,9 @@ class TripRecommendationService {
       return {
         ...destination,
         distance_km: this.calculateDistance(departure_lat, departure_lng, destination.latitude, destination.longitude),
-        estimated_total_cost: this.calculateTotalTripCost(destination, params),
+        estimated_avg_cost: this.calculateTotalTripCost(destination, params),
         final_score: Math.round(finalScore * 100) / 100,
-        score_breakdown: scores,
+        scoring_breakdown: scores,
         personalization_factors: this.getPersonalizationFactors(destination, params)
       };
     });
@@ -294,9 +270,7 @@ class TripRecommendationService {
     return rankedDestinations;
   }
 
-  /**
-   * Enhanced recommendations with multi-city options and detailed information
-   */
+  //Enhanced recommendations with multi-city options and detailed information
   async enhanceRecommendations(recommendations, params) {
     const { duration_days, user_id } = params;
     const shouldIncludeMultiCity = duration_days >= 5;
@@ -339,8 +313,6 @@ class TripRecommendationService {
     return enhancedRecommendations;
   }
 
-  // ============= SCORING METHODS =============
-
   calculateBaseQualityScore(destination) {
     const ratingScore = (destination.overall_rating / 5.0) * 12;
     const reviewScore = Math.min(4, Math.log10(destination.total_reviews + 1));
@@ -373,7 +345,6 @@ class TripRecommendationService {
   calculateDistanceScore(destination, userLat, userLng) {
     const distance = this.calculateDistance(userLat, userLng, destination.latitude, destination.longitude);
     
-    // Distance scoring with diminishing returns
     if (distance <= 200) return 15;
     if (distance <= 500) return 12;
     if (distance <= 1000) return 9;
@@ -453,12 +424,12 @@ class TripRecommendationService {
     const totalCost = this.calculateTotalTripCost(destination, params);
     const budgetUtilization = totalCost / budget;
 
-    if (budgetUtilization <= 0.6) return 12;      // Under budget - excellent
-    if (budgetUtilization <= 0.8) return 10;      // Good value
-    if (budgetUtilization <= 1.0) return 8;       // Within budget
-    if (budgetUtilization <= 1.15) return 5;      // Slightly over budget
-    if (budgetUtilization <= 1.3) return 2;       // Significantly over budget
-    return 0;                                      // Way over budget
+    if (budgetUtilization <= 0.6) return 12;      
+    if (budgetUtilization <= 0.8) return 10;   
+    if (budgetUtilization <= 1.0) return 8;     
+    if (budgetUtilization <= 1.15) return 5;   
+    if (budgetUtilization <= 1.3) return 2;     
+    return 0;                                
   }
 
   calculateDurationScore(destination, durationDays) {
@@ -467,7 +438,6 @@ class TripRecommendationService {
 
     let score = 0;
 
-    // Base duration matching
     if (Math.abs(durationDays - recommendedDays) <= 1) {
       score += 6;
     } else if (Math.abs(durationDays - recommendedDays) <= 2) {
@@ -475,8 +445,6 @@ class TripRecommendationService {
     } else {
       score += 2;
     }
-
-    // Extended stay potential for longer trips
     if (durationDays >= 5) {
       score += Math.min(4, nearbyCount);
     }
@@ -499,8 +467,6 @@ class TripRecommendationService {
 
     return Math.max(0, Math.min(5, score));
   }
-
-  // ============= UTILITY METHODS =============
 
   calculateDistance(lat1, lng1, lat2, lng2) {
     const R = 6371; // Earth's radius in km
@@ -596,8 +562,6 @@ class TripRecommendationService {
     return factors;
   }
 
-  // ============= DATA FETCHING METHODS =============
-
   async getTopActivities(destinationId, params, limit = 5) {
     const { age, tourist_type, budget } = params;
     
@@ -622,7 +586,7 @@ class TripRecommendationService {
       LIMIT ?
     `;
 
-    const maxActivityBudget = Math.round(budget * 0.2); // 20% of budget for activities
+    const maxActivityBudget = Math.round(budget * 0.2);
     const [activities] = await pool.execute(query, [destinationId, age, age, maxActivityBudget, limit]);
     return activities;
   }
@@ -630,7 +594,7 @@ class TripRecommendationService {
   async getAccommodationSummary(destinationId, params) {
     const { budget, duration_days, tourist_type } = params;
     
-    const dailyBudget = Math.round(budget / duration_days * 0.4); // 40% of daily budget for accommodation
+    const dailyBudget = Math.round(budget / duration_days * 0.4);
     
     const query = `
       SELECT 
@@ -651,9 +615,6 @@ class TripRecommendationService {
 
   async getTransportOptions(destination, params) {
     const { departure_lat, departure_lng } = params;
-    
-    // This would typically involve more complex logic to find transport routes
-    // For now, return basic connectivity information
     const connectivity = destination.transport_connectivity_score || 5;
     const airportDistance = destination.nearby_airport_distance_km;
     
@@ -752,8 +713,6 @@ class TripRecommendationService {
     return preferences[0] || null;
   }
 
-  // ============= VALIDATION AND CACHING =============
-
   validateAndSanitizeParams(params) {
     const {
       user_id = null,
@@ -763,9 +722,9 @@ class TripRecommendationService {
       gender = 'prefer_not_to_say',
       budget = 50000,
       duration_days = 3,
-      travel_month = new Date().getMonth() + 1,
+      travel_month_num,
       tourist_type = 'Solo',
-      preferred_category = null
+      preferred_type = null
     } = params;
 
     // Validation
@@ -778,6 +737,7 @@ class TripRecommendationService {
     if (duration_days < 1 || duration_days > 30) {
       throw new ValidationError('Trip duration must be between 1 and 30 days');
     }
+    const travel_month = travel_month_num || new Date().getMonth() + 1;
     if (travel_month < 1 || travel_month > 12) {
       throw new ValidationError('Travel month must be between 1 and 12');
     }
@@ -792,7 +752,7 @@ class TripRecommendationService {
       duration_days: parseInt(duration_days),
       travel_month: parseInt(travel_month),
       tourist_type,
-      preferred_category
+      preferred_type
     };
   }
 
@@ -801,37 +761,21 @@ class TripRecommendationService {
       lat: Math.round(params.departure_lat * 100),
       lng: Math.round(params.departure_lng * 100),
       age: params.age,
-      budget: Math.round(params.budget / 1000) * 1000, // Round to nearest 1000
+      budget: Math.round(params.budget / 1000) * 1000,
       duration: params.duration_days,
       month: params.travel_month,
       type: params.tourist_type,
-      category: params.preferred_category || 'all'
+      category: params.preferred_type || 'all' 
     };
     
     return `recommendations:${Object.values(keyData).join(':')}`;
   }
 
   async getCachedRecommendations(cacheKey) {
-    // UPDATED: All Redis logic is commented out to prevent connection errors.
-    // try {
-    //   if (!redisClient) return null;
-    //   const cached = await redisClient.get(cacheKey);
-    //   return cached ? JSON.parse(cached) : null;
-    // } catch (error) {
-    //   logger.warn('Cache retrieval failed', { cacheKey, error: error.message });
-    //   return null;
-    // }
-    return null; // Always return null as if cache was missed
+    return null; 
   }
 
   async cacheRecommendations(cacheKey, recommendations) {
-    // UPDATED: All Redis logic is commented out to prevent connection errors.
-    // try {
-    //   if (!redisClient) return;
-    //   await redisClient.setex(cacheKey, this.CACHE_TTL, JSON.stringify(recommendations));
-    // } catch (error) {
-    //   logger.warn('Cache storage failed', { cacheKey, error: error.message });
-    // }
   }
 
   toRadians(degrees) {
@@ -839,11 +783,6 @@ class TripRecommendationService {
   }
 }
 
-// ============= ADDITIONAL UTILITY SERVICES =============
-
-/**
- * Service for handling destination details and itinerary generation
- */
 class DestinationDetailService {
   constructor() {
     this.recommendationService = new TripRecommendationService();
@@ -969,9 +908,122 @@ class DestinationDetailService {
     }));
   }
   
-  // Note: The original file was cut off here. The remaining methods of DestinationDetailService are not present.
-  // The primary goal of fixing the Redis issue in TripRecommendationService is complete.
+  isActivityRecommendedForGroup(activity, touristType) {
+    const min = activity.group_size_min || 1;
+    const max = activity.group_size_max || 100;
+    switch (touristType) {
+        case 'Solo': return min === 1;
+        case 'Couple': return min <= 2 && max >= 2;
+        case 'Family': return min <= 4 && max >= 3;
+        case 'Friends': return min <= 8 && max >= 2;
+        default: return true;
+    }
+  }
+  getDifficultyDescription(level) {
+    if (level <= 2) return "Easy";
+    if (level <= 5) return "Moderate";
+    if (level <= 8) return "Challenging";
+    return "Expert";
+  }
+  async getDestinationHotels(destinationId, params, limit = 10) {
+      const { budget, duration_days } = params;
+      const dailyBudget = Math.round(budget / duration_days * 0.4);
+      const query = `
+          SELECT name, avg_rating, price_per_night_min, amenities, is_couple_friendly, is_family_friendly
+          FROM hotels
+          WHERE destination_id = ? AND is_active = 1 AND price_per_night_min <= ?
+          ORDER BY avg_rating DESC
+          LIMIT ?
+      `;
+      const [hotels] = await pool.execute(query, [destinationId, dailyBudget, limit]);
+      return hotels;
+  }
+  async getDestinationReviews(destinationId, limit = 5) {
+      const query = `
+          SELECT user_name, rating, title, comment, review_date
+          FROM reviews
+          WHERE destination_id = ?
+          ORDER BY review_date DESC
+          LIMIT ?
+      `;
+      const [reviews] = await pool.execute(query, [destinationId, limit]);
+      return reviews;
+  }
+  async getEmergencyServices(destinationId) {
+      const query = `
+          SELECT type, name, contact_number
+          FROM emergency_contacts
+          WHERE destination_id = ?
+      `;
+      const [services] = await pool.execute(query, [destinationId]);
+      return services;
+  }
+
+  async getDestinationTags(destinationId) {
+      const query = `
+          SELECT t.tag_name
+          FROM destination_tags dt
+          JOIN tags t ON dt.tag_id = t.tag_id
+          WHERE dt.destination_id = ?
+      `;
+      const [tags] = await pool.execute(query, [destinationId]);
+      return tags.map(t => t.tag_name);
+  }
+
+  async generateItinerary(destination, activities, params) {
+    const { duration_days } = params;
+    const sortedActivities = activities.sort((a, b) => b.popularity_score - a.popularity_score);
+    const itinerary = [];
+    let activityIndex = 0;
+    for (let day = 1; day <= duration_days; day++) {
+        const dailyActivities = [];
+        let hoursFilled = 0;
+        
+        while (activityIndex < sortedActivities.length && hoursFilled < 8) {
+            const activity = sortedActivities[activityIndex];
+            if (hoursFilled + activity.duration_hours <= 8) {
+                dailyActivities.push(activity);
+                hoursFilled += activity.duration_hours;
+            }
+            activityIndex++;
+        }
+
+        itinerary.push({
+            day: day,
+            activities: dailyActivities,
+            theme: dailyActivities.length > 0 ? dailyActivities[0].category : "Relax & Explore"
+        });
+    }
+
+    return itinerary;
+  }
+  getTravelInsights(destination, params) {
+    const insights = [];
+    if (destination.is_peak_season) {
+        insights.push("You're traveling in peak season. Expect more crowds and book in advance.");
+    }
+    if (destination.festival_season) {
+        insights.push(`This is a festive time in ${destination.name}! Enjoy the cultural events.`);
+    }
+    if (destination.physical_demand_level > 7) {
+        insights.push("This destination involves high physical activity. Be prepared for a challenge.");
+    }
+    return insights;
+  }
+  getDetailedCostBreakdown(destination, params) {
+    const totalCost = this.recommendationService.calculateTotalTripCost(destination, params);
+    const { duration_days } = params;
+    
+    return {
+        estimated_total_cost: totalCost,
+        accommodation: (destination.min_hotel_price || 2000) * duration_days,
+        food: (destination.avg_daily_food_cost || 1000) * duration_days,
+        local_transport: (destination.avg_daily_transport_cost || 500) * duration_days,
+        activities: duration_days * 1200,
+        intercity_transport: totalCost - ((destination.min_hotel_price || 2000) * duration_days + (destination.avg_daily_food_cost || 1000) * duration_days + (destination.avg_daily_transport_cost || 500) * duration_days + duration_days * 1200)
+    };
+  }
 }
 
-// Export the primary service
 module.exports = new TripRecommendationService();
+
