@@ -1,71 +1,56 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
-// Yeh .env file se API ka base URL lega jo root directory mein hai.
-// Agar wahan nahi milta hai to default http://localhost:4001/api use karega.
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4001/api';
-
+// Create an Axios instance
 const api = axios.create({
-    baseURL: API_URL,
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-/**
- * Yeh ek interceptor hai.
- * Yeh har API request bhejne se pehle check karega ki user logged in hai ya nahi.
- * Agar user logged in hai (localStorage mein token hai), to yeh us token ko
- * request ke header mein 'Authorization' ke saath bhej dega.
- * Isse backend ko pata chalega ki request ek authenticated user ne bheji hai.
- */
+// Add a request interceptor to include the token in headers
 api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-/**
- * Naye user ko register karne ke liye backend ko request bhejta hai.
- * @param {object} userData - { username, email, password }
- * @returns {Promise}
- */
-export const registerUser = (userData) => {
-    return api.post('/auth/register', userData).then(res => res.data);
-};
+// Add a response interceptor for global error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const message = error.response?.data?.message || error.message || 'An unknown error occurred';
+    toast.error(message);
+    
+    if (error.response?.status === 401) {
+        // Handle unauthorized access, e.g., redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // This relies on a router history object or a page reload
+        window.location.href = '/login';
+    }
 
-/**
- * OTP ko verify karne ke liye backend ko request bhejta hai.
- * @param {object} data - { email, otp }
- * @returns {Promise} - Success hone par token return karta hai.
- */
-export const verifyOtp = (data) => {
-    return api.post('/auth/verify-otp', data).then(res => res.data);
-};
+    return Promise.reject(error);
+  }
+);
 
-/**
- * User ko login karne ke liye backend ko request bhejta hai.
- * @param {object} credentials - { email, password }
- * @returns {Promise} - Success hone par token return karta hai.
- */
-export const loginUser = (credentials) => {
-    return api.post('/auth/login', credentials).then(res => res.data);
-};
 
-/**
- * User ki preferences ke aadhar par trip recommendations laane ke liye request bhejta hai.
- * @param {object} preferences - User ki chayanit options.
- * @returns {Promise} - Trip recommendations ka array return karta hai.
- */
-export const getRecommendations = (preferences) => {
-    return api.post('/trips/recommendations', preferences).then(res => res.data);
-};
+// --- AUTH API CALLS ---
+export const registerUser = (userData) => api.post('/auth/register', userData);
+export const verifyOtp = (otpData) => api.post('/auth/verify-otp', otpData);
+export const loginUser = (credentials) => api.post('/auth/login', credentials);
 
-// Bhavishya mein anya API calls yahan add ki ja sakti hain, jaise:
-// export const getTripDetails = (tripId) => {
-//     return api.get(`/trips/${tripId}`).then(res => res.data);
-// };
+// --- TRIP API CALLS ---
+export const planTrip = (tripData) => api.post('/trip/plan', tripData);
+export const getUserTrips = (userId) => api.get(`/trip/trips/${userId}`);
+export const getTripDetails = (tripId) => api.get(`/trip/${tripId}`);
 
+export default api;

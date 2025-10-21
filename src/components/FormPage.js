@@ -1,87 +1,121 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getRecommendations } from '../api/apiService';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { planTrip } from '../api/apiService';
 import '../styles/FormPage.css';
+import { toast } from 'react-toastify';
 
-function FormPage() {
-    const [formData, setFormData] = useState({
-        source: '',
-        destination: '',
-        budget: '',
-        days: '',
-        groupType: 'solo',
-        interests: []
-    });
-    const [error, setError] = useState('');
+
+const FormPage = () => {
+    const [startCity, setStartCity] = useState('');
+    const [endCity, setEndCity] = useState('');
+    const [startDate, setStartDate] = useState(new Date());
+    const [endDate, setEndDate] = useState(new Date());
+    const [budget, setBudget] = useState('');
+    const [preferences, setPreferences] = useState([]);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleInterestChange = (e) => {
+    const handlePreferenceChange = (e) => {
         const { value, checked } = e.target;
-        setFormData(prev => {
-            if (checked) {
-                return { ...prev, interests: [...prev.interests, value] };
-            } else {
-                return { ...prev, interests: prev.interests.filter(i => i !== value) };
-            }
-        });
+        if (checked) {
+            setPreferences([...preferences, value]);
+        } else {
+            setPreferences(preferences.filter((pref) => pref !== value));
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        setLoading(true);
+
+        const tripData = {
+            startCity,
+            endCity,
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+            budget: Number(budget),
+            preferences,
+        };
+        
         try {
-            const results = await getRecommendations(formData);
-            navigate('/results', { state: { recommendations: results } });
-        } catch (err) {
-            setError(err.response?.data?.message || 'Could not fetch recommendations.');
+            const response = await planTrip(tripData);
+            setLoading(false);
+            toast.success("Trip plan generated successfully!");
+            // Navigate to the results page with the new trip's ID
+            navigate(`/trip/${response.data.tripId}`);
+        } catch (error) {
+            setLoading(false);
+            console.error('Failed to plan trip:', error);
+            // Error toast is handled by apiService interceptor
         }
     };
 
-    // Add more interests as needed
-    const interestOptions = ['adventure', 'culture', 'relaxation', 'beach', 'mountains', 'historical'];
-
     return (
         <div className="form-container">
-            <h2>Find Your Perfect Trip</h2>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="trip-form">
+                <h2>Plan Your Next Adventure</h2>
                 <div className="form-row">
-                    <input name="source" value={formData.source} onChange={handleChange} placeholder="Source City" />
-                    <input name="destination" value={formData.destination} onChange={handleChange} placeholder="Destination (Optional)" />
-                </div>
-                <div className="form-row">
-                    <input name="budget" type="number" value={formData.budget} onChange={handleChange} placeholder="Max Budget (e.g., 50000)" />
-                    <input name="days" type="number" value={formData.days} onChange={handleChange} placeholder="Number of Days (e.g., 5)" />
-                </div>
-                <div className="form-row">
-                    <select name="groupType" value={formData.groupType} onChange={handleChange}>
-                        <option value="solo">Solo</option>
-                        <option value="couple">Couple</option>
-                        <option value="family">Family</option>
-                        <option value="friends">Friends</option>
-                    </select>
-                </div>
-                <div className="interests-group">
-                    <label>Interests:</label>
-                    <div className="interests-checkboxes">
-                        {interestOptions.map(interest => (
-                            <label key={interest}>
-                                <input type="checkbox" value={interest} onChange={handleInterestChange} />
-                                {interest.charAt(0).toUpperCase() + interest.slice(1)}
-                            </label>
-                        ))}
+                    <div className="form-group">
+                        <label>Starting City</label>
+                        <input
+                            type="text"
+                            value={startCity}
+                            onChange={(e) => setStartCity(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>Destination City</label>
+                        <input
+                            type="text"
+                            value={endCity}
+                            onChange={(e) => setEndCity(e.target.value)}
+                            required
+                        />
                     </div>
                 </div>
-                {error && <p className="error-message">{error}</p>}
-                <button type="submit">Get Recommendations</button>
+
+                <div className="form-row">
+                    <div className="form-group">
+                        <label>Start Date</label>
+                        <DatePicker selected={startDate} onChange={(date) => setStartDate(date)} />
+                    </div>
+                    <div className="form-group">
+                        <label>End Date</label>
+                        <DatePicker selected={endDate} onChange={(date) => setEndDate(date)} />
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label>Budget (in USD)</label>
+                    <input
+                        type="number"
+                        value={budget}
+                        onChange={(e) => setBudget(e.target.value)}
+                        placeholder="e.g., 1000"
+                        required
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label>Preferences</label>
+                    <div className="preferences-group">
+                       <label><input type="checkbox" value="sightseeing" onChange={handlePreferenceChange} /> Sightseeing</label>
+                       <label><input type="checkbox" value="adventure" onChange={handlePreferenceChange} /> Adventure</label>
+                       <label><input type="checkbox" value="relaxation" onChange={handlePreferenceChange} /> Relaxation</label>
+                       <label><input type="checkbox" value="culture" onChange={handlePreferenceChange} /> Culture</label>
+                       <label><input type="checkbox" value="foodie" onChange={handlePreferenceChange} /> Foodie</label>
+                    </div>
+                </div>
+
+                <button type="submit" className="submit-btn" disabled={loading}>
+                    {loading ? 'Generating Plan...' : 'Generate My Trip'}
+                </button>
             </form>
         </div>
     );
-}
+};
 
 export default FormPage;
-

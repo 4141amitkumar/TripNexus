@@ -1,47 +1,60 @@
-import React, { useState, useEffect, createContext } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { toast } from 'react-toastify';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
+
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('token'));
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     useEffect(() => {
-        if (token) {
-            try {
-                const decodedUser = jwtDecode(token);
-                // Check if token is expired
-                const isExpired = decodedUser.exp * 1000 < Date.now();
-                if (isExpired) {
-                    logout();
-                } else {
-                    setUser(decodedUser);
-                }
-            } catch (error) {
-                console.error("Invalid token:", error);
-                logout();
-            }
-        }
-    }, [token]);
+        try {
+            const storedUser = JSON.parse(localStorage.getItem('user'));
+            const storedToken = localStorage.getItem('token');
 
-    const login = (newToken) => {
-        localStorage.setItem('token', newToken);
-        setToken(newToken);
+            if (storedUser && storedToken) {
+                setUser(storedUser);
+                setToken(storedToken);
+                setIsAuthenticated(true);
+            }
+        } catch (error) {
+            // If parsing fails, clear storage
+            logout();
+        }
+    }, []);
+
+    const login = (userData, userToken) => {
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('token', userToken);
+        setUser(userData);
+        setToken(userToken);
+        setIsAuthenticated(true);
+        toast.success(`Welcome, ${userData.username}!`);
     };
 
     const logout = () => {
+        localStorage.removeItem('user');
         localStorage.removeItem('token');
         setUser(null);
         setToken(null);
+        setIsAuthenticated(false);
+        toast.info("You have been logged out.");
+    };
+
+    const value = {
+        user,
+        token,
+        isAuthenticated,
+        login,
+        logout,
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, token }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );
 };
-
-export default AuthContext;
-

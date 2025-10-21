@@ -1,41 +1,40 @@
-require('dotenv').config(); // Loads variables from backend/.env
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bodyParser = 'body-parser'; // Note: express.json() is now preferred
-const tripRoutes = require('./routes/tripRoutes');
+const db = require('./db/db');
 const authRoutes = require('./routes/authRoutes');
-const { AppError, globalErrorHandler } = require('./utils/errors');
+const tripRoutes = require('./routes/tripRoutes');
 const logger = require('./utils/logger');
 
 const app = express();
-const PORT = process.env.PORT || 4001;
+const PORT = process.env.PORT || 5000;
 
-// --- Middleware ---
-// Enable Cross-Origin Resource Sharing for your React app
+// Middleware
 app.use(cors());
-// Parse incoming JSON requests
 app.use(express.json());
-// Log each incoming request
+
+// Basic logging middleware
 app.use((req, res, next) => {
-  logger.info(`Incoming Request: ${req.method} ${req.originalUrl}`);
+  logger.info(`${req.method} ${req.originalUrl}`);
   next();
 });
 
-// --- API Routes ---
-app.use('/api/trips', tripRoutes); // All trip-related routes are in tripRoutes.js
-app.use('/api/auth', authRoutes); // All auth-related routes
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/trip', tripRoutes);
 
-// --- Error Handling ---
-// Handle 404 errors for any API route not found
-app.all('/api/*', (req, res, next) => {
-  next(new AppError(`The requested URL was not found on this server: ${req.originalUrl}`, 404));
+// Root endpoint
+app.get('/', (req, res) => {
+  res.send('TripNexus API is running!');
 });
 
-// Global error handler catches all errors passed by next(error)
-app.use(globalErrorHandler);
+// Global error handler
+app.use((err, req, res, next) => {
+  logger.error(err.stack);
+  res.status(500).send('Something broke!');
+});
 
-// --- Start Server ---
+// Start the server
 app.listen(PORT, () => {
-  logger.info(`🚀 Server is listening on http://localhost:${PORT}`);
+  logger.info(`Server is running on port ${PORT}`);
 });
-

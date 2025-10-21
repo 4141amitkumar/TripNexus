@@ -1,67 +1,55 @@
-import React, { useState, useContext } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { verifyOtp } from '../api/apiService';
-import AuthContext from '../context/AuthContext';
+import { toast } from 'react-toastify';
 import './AuthForm.css';
+import '../styles/OtpPage.css';
 
-function OtpVerificationPage() {
+const OtpVerificationPage = () => {
     const [otp, setOtp] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-
     const navigate = useNavigate();
     const location = useLocation();
-    const { login } = useContext(AuthContext);
-    const email = location.state?.email;
+    const email = location.state?.email; // Get email passed from registration page
 
     if (!email) {
-        // Redirect to register if email is not in state
-        navigate('/');
+        // Redirect if email is not available, which means user landed here directly
+        navigate('/register');
         return null;
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
-        setLoading(true);
-
         try {
-            const response = await verifyOtp({ email, otp });
-            login(response.token);
-            navigate('/find-trip');
-        } catch (err) {
-            setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
-        } finally {
-            setLoading(false);
+            await verifyOtp({ email, otp });
+            toast.success('Verification successful! Please log in.');
+            navigate('/login');
+        } catch (error) {
+            console.error('OTP verification failed:', error);
+            // Error toast is handled by apiService interceptor
         }
     };
 
     return (
-        <div className="auth-page-container">
-            <div className="auth-form-container">
+        <div className="auth-container">
+            <form className="auth-form" onSubmit={handleSubmit}>
                 <h2>Verify Your Email</h2>
-                <p>An OTP has been sent to {email}.</p>
-                <form onSubmit={handleSubmit}>
-                    <div className="input-group">
-                        <label htmlFor="otp">Enter OTP</label>
-                        <input
-                            type="text"
-                            id="otp"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            placeholder="6-digit code"
-                            required
-                        />
-                    </div>
-                    {error && <p className="error-message">{error}</p>}
-                    <button type="submit" className="auth-button" disabled={loading}>
-                        {loading ? 'Verifying...' : 'Verify & Proceed'}
-                    </button>
-                </form>
-            </div>
+                <p>An OTP has been sent to {email}</p>
+                <div className="input-group">
+                    <label htmlFor="otp">Enter OTP</label>
+                    <input
+                        type="text"
+                        id="otp"
+                        name="otp"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        required
+                        maxLength="6"
+                    />
+                </div>
+                <button type="submit" className="auth-button">Verify OTP</button>
+            </form>
         </div>
     );
-}
+};
 
 export default OtpVerificationPage;
-

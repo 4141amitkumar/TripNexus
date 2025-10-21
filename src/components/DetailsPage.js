@@ -1,62 +1,84 @@
-import React from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { getTripDetails } from '../api/apiService';
 import '../styles/DetailsPage.css';
 
 const DetailsPage = () => {
-  const location = useLocation();
-  const { tripId } = useParams();
-  
-  // The trip data is passed via state from the ResultPage Link
-  const trip = location.state?.trip;
+    const { tripId } = useParams();
+    const [trip, setTrip] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-  if (!trip) {
-    // You could fetch the trip details here using the tripId if the user lands directly on this page
-    return <div className="details-container"><h2>Trip not found or data missing.</h2></div>;
-  }
+    useEffect(() => {
+        const fetchTrip = async () => {
+            try {
+                setLoading(true);
+                const response = await getTripDetails(tripId);
+                setTrip(response.data);
+            } catch (error) {
+                console.error("Failed to fetch trip details:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-  const handleBooking = () => {
-      alert(`Booking for ${trip.trip_name} is not yet implemented.`);
-  }
+        if (tripId) {
+            fetchTrip();
+        }
+    }, [tripId]);
 
-  return (
-    <div className="details-page">
-      <div className="details-hero" style={{ backgroundImage: `url(${trip.image_url || 'https://placehold.co/1200x500'})` }}>
-        <div className="hero-content">
-          <h1>{trip.trip_name}</h1>
-          <h2>{trip.destination_name}</h2>
-        </div>
-      </div>
+    if (loading) {
+        return <div className="loading-container">Loading trip details...</div>;
+    }
 
-      <div className="details-body">
-        <div className="details-main">
-          <h3>About the Trip</h3>
-          <p>{trip.description}</p>
+    if (!trip) {
+        return <div className="error-container">Could not load trip details.</div>;
+    }
 
-          <div className="reviews-section">
-            <h3>Reviews</h3>
-            <p>Reviews will be shown here once the feature is implemented.</p>
-          </div>
-        </div>
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+    };
 
-        <aside className="details-sidebar">
-          <div className="booking-card">
-            <h4>Trip Details</h4>
-            <ul>
-              <li><strong>Duration:</strong> {trip.num_days} Days</li>
-              <li><strong>Travel Style:</strong> {trip.group_type}</li>
-              <li><strong>Matches Interests:</strong> {trip.interest_matches} of your interests</li>
-            </ul>
-            <div className="price-tag">
-              <span>Starts From</span>
-              <p>₹{Number(trip.base_cost).toLocaleString()}</p>
+    return (
+        <div className="details-container">
+            <div className="trip-summary">
+                <h1>Trip to {trip.end_city}</h1>
+                <p><strong>From:</strong> {formatDate(trip.start_date)} to {formatDate(trip.end_date)}</p>
+                <p><strong>Budget:</strong> ${trip.budget}</p>
             </div>
-            <button className="book-now-btn" onClick={handleBooking}>Book Now</button>
-          </div>
-        </aside>
-      </div>
-    </div>
-  );
+
+            <div className="itinerary">
+                <h2>Itinerary</h2>
+                {trip.days && trip.days.length > 0 ? (
+                    trip.days.map((day) => (
+                        <div key={day.day_id} className="day-card">
+                            <h3>Day {new Date(day.day_date).getDate() - new Date(trip.start_date).getDate() + 1}: {formatDate(day.day_date)}</h3>
+                            {day.activities && day.activities.length > 0 ? (
+                                <ul className="activity-list">
+                                    {day.activities.map((activity) => (
+                                        <li key={activity.activity_id} className="activity-item">
+                                            <div className="activity-time">{activity.start_time.substring(0, 5)} - {activity.end_time.substring(0, 5)}</div>
+                                            <div className="activity-details">
+                                                <strong>{activity.activity_name}</strong>
+                                                <p>Estimated Cost: ${activity.estimated_cost}</p>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p>No activities planned for this day.</p>
+                            )}
+                        </div>
+                    ))
+                ) : (
+                    <p>No daily plans available for this trip.</p>
+                )}
+            </div>
+        </div>
+    );
 };
 
 export default DetailsPage;
-

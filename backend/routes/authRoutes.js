@@ -1,124 +1,123 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const path = require('path');
-const pool = require(path.join(__dirname, '..', 'db.js')); // Using robust path joining
+const db = require('../db/db');
 const { sendOtpEmail } = require('../utils/emailService');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
-// Store OTPs temporarily. In a real app, use Redis or a database table.
-const otpStore = {};
-
-// POST /api/auth/register
+// --- User Registration ---
 router.post('/register', async (req, res) => {
-    try {
-        const { username, email, password } = req.body;
+    const { username, email, password } = req.body;
 
-        // 1. Check if user already exists
-        const [existingUser] = await pool.query('SELECT * FROM Users WHERE email = ?', [email]);
-        if (existingUser.length > 0) {
-            return res.status(409).json({ message: 'An account with this email already exists.' });
+    if (!username || !email || !password) {
+        return res.status(400).json({ message: 'Please provide all required fields.' });
+    }
+
+    try {
+        // Check if user already exists
+        const [existingUsers] = await db.query('SELECT * FROM Users WHERE email = ?', [email]);
+        if (existingUsers.length > 0) {
+            return res.status(409).json({ message: 'User with this email already exists.' });
         }
 
-        // 2. Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // 3. Generate OTP
+        const hashedPassword = await bcrypt.hash(password, 10);
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        otpStore[email] = {
-            otp,
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // OTP expires in 10 minutes
+
+        const newUser = {
             username,
-            hashedPassword,
-            expires: Date.now() + 10 * 60 * 1000, // OTP expires in 10 minutes
+            email,
+            password: hashedPassword,
+            otp,
+            otp_expires: otpExpires,
+            is_verified: false,
         };
 
-        // 4. Send OTP email
+        await db.query('INSERT INTO Users SET ?', newUser);
         await sendOtpEmail(email, otp);
 
-        res.status(200).json({ message: 'OTP sent to your email. Please verify to complete registration.' });
-
+        res.status(201).json({ message: 'User registered. Please check your email for OTP.' });
     } catch (error) {
-        console.error("Registration Error:", error);
+        logger.error('Registration error:', error);
         res.status(500).json({ message: 'Server error during registration.' });
     }
 });
 
-// POST /api/auth/verify-otp
+
+// --- OTP Verification ---
 router.post('/verify-otp', async (req, res) => {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+        return res.status(400).json({ message: 'Email and OTP are required.' });
+    }
+
     try {
-        const { email, otp } = req.body;
-
-        const storedData = otpStore[email];
-
-        if (!storedData || storedData.expires < Date.now()) {
-            return res.status(400).json({ message: 'OTP is invalid or has expired.' });
+        const [users] = await db.query('SELECT * FROM Users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'User not found.' });
         }
 
-        if (storedData.otp !== otp) {
-            return res.status(400).json({ message: 'Invalid OTP.' });
+        const user = users[0];
+        if (user.otp !== otp || new Date() > new Date(user.otp_expires)) {
+            return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
 
-        // OTP is correct, create the user
-        const { username, hashedPassword } = storedData;
+        await db.query('UPDATE Users SET is_verified = true, otp = NULL, otp_expires = NULL WHERE email = ?', [email]);
 
-        const [result] = await pool.query(
-            'INSERT INTO Users (username, email, password_hash) VALUES (?, ?, ?)',
-            [username, email, hashedPassword]
-        );
-        
-        const userId = result.insertId;
-
-        // Clean up OTP store
-        delete otpStore[email];
-        
-        // Create a JWT token for immediate login
-        const token = jwt.sign({ userId, email }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-        res.status(201).json({ 
-            message: 'User registered successfully!',
-            token,
-            user: { id: userId, username, email }
-        });
-
+        res.status(200).json({ message: 'Email verified successfully.' });
     } catch (error) {
-        console.error("OTP Verification Error:", error);
+        logger.error('OTP verification error:', error);
         res.status(500).json({ message: 'Server error during OTP verification.' });
     }
 });
 
 
-// POST /api/auth/login
+// --- User Login ---
 router.post('/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
+    const { email, password } = req.body;
 
-        const [users] = await pool.query('SELECT * FROM Users WHERE email = ?', [email]);
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required.' });
+    }
+
+    try {
+        const [users] = await db.query('SELECT * FROM Users WHERE email = ?', [email]);
         if (users.length === 0) {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
         const user = users[0];
+        if (!user.is_verified) {
+            return res.status(403).json({ message: 'Please verify your email before logging in.' });
+        }
 
-        const isMatch = await bcrypt.compare(password, user.password_hash);
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
-        const token = jwt.sign({ userId: user.user_id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const payload = {
+            user: {
+                id: user.user_id,
+                username: user.username,
+                email: user.email,
+            },
+        };
+
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
         res.json({
             token,
-            user: { id: user.user_id, username: user.username, email: user.email }
+            user: payload.user,
         });
 
     } catch (error) {
-        console.error("Login Error:", error);
+        logger.error('Login error:', error);
         res.status(500).json({ message: 'Server error during login.' });
     }
 });
 
-
 module.exports = router;
-
