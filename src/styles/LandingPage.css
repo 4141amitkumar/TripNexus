@@ -1,182 +1,96 @@
-/* Main container for the entire landing page */
+.landing-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 80px); /* Adjust based on header height */
+    padding: 2rem;
+    background: #f0f4f8;
+}
+
 .landing-container {
     display: flex;
-    height: 100vh;
-    width: 100%;
-    font-family: 'Poppins', sans-serif;
-    background-color: #f0f2f5;
-    overflow: hidden;
-}
-
-/* Left side of the page (Illustration and Hero Text) */
-.landing-left {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
     align-items: center;
-    padding: 40px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1200px;
+    background-color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 3rem;
+    flex-wrap: wrap;
 }
 
-.illustration {
-    max-width: 80%;
-    height: auto;
-    margin-bottom: 30px;
+.landing-content {
+    flex: 1;
+    padding-right: 3rem;
+    min-width: 300px;
 }
 
-.hero-text {
-    text-align: center;
-}
-
-.hero-text h1 {
-    font-size: 3rem;
+.landing-content h1 {
+    font-size: 3.5rem;
     font-weight: 700;
-    margin-bottom: 10px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    color: #333;
+    margin-bottom: 1rem;
+    line-height: 1.2;
 }
 
-.hero-text p {
+.landing-content p {
     font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 2.5rem;
     max-width: 500px;
-    line-height: 1.6;
 }
 
-/* Right side of the page (Authentication Form) */
-.landing-right {
+.google-login-container {
+    display: flex;
+    justify-content: flex-start;
+}
+
+
+.landing-illustration {
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 40px;
+    min-width: 300px;
 }
 
-/* Common container for auth forms (login, register) */
-.auth-form-container {
-    width: 100%;
-    max-width: 400px;
-    background: #ffffff;
-    padding: 40px;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+.landing-illustration img {
+    max-width: 100%;
+    height: auto;
 }
 
-.auth-form-container h2 {
-    font-size: 1.8rem;
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: #333;
-    text-align: center;
-}
-
-.auth-form-container p {
-    color: #666;
-    margin-bottom: 30px;
-    text-align: center;
-}
-
-.input-group {
-    margin-bottom: 20px;
-}
-
-.input-group label {
-    display: block;
-    font-weight: 500;
-    margin-bottom: 8px;
-    color: #555;
-}
-
-.input-group input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 1rem;
-    color: #333; /* <-- FIX: Ensures text is visible while typing */
-    transition: border-color 0.3s;
-}
-
-.input-group input:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
-.auth-button {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 5px;
-    background: #667eea;
-    color: white;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.auth-button:hover {
-    background: #5a6ed8;
-}
-
-.auth-button:disabled {
-    background-color: #aaa;
-    cursor: not-allowed;
-}
-
-.switch-auth {
-    text-align: center;
-    margin-top: 20px;
-}
-
-.switch-auth p {
-    color: #555;
-}
-
-.switch-auth a {
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.switch-auth a:hover {
-    text-decoration: underline;
-}
-
-/* Error and Success Messages */
-.error-message {
-    color: #e74c3c;
-    background-color: #fbe2e2;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 15px;
-    text-align: center;
-    font-size: 0.9rem;
-}
-
-.success-message {
-    color: #27ae60;
-    background-color: #e2fbe2;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 15px;
-    text-align: center;
-    font-size: 0.9rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
+/* Responsive Design */
+@media (max-width: 992px) {
     .landing-container {
         flex-direction: column;
+        text-align: center;
     }
 
-    .landing-left {
-        display: none; /* Hide illustration on small screens to focus on the form */
+    .landing-content {
+        padding-right: 0;
+        margin-bottom: 3rem;
+    }
+    
+    .landing-content p {
+        max-width: 100%;
     }
 
-    .landing-right {
-        height: 100%;
+    .google-login-container {
+        justify-content: center;
     }
 }
 
+@media (max-width: 576px) {
+    .landing-content h1 {
+        font-size: 2.5rem;
+    }
+
+    .landing-content p {
+        font-size: 1rem;
+    }
+
+    .landing-container {
+        padding: 2rem;
+    }
+}

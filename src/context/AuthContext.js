@@ -1,60 +1,61 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import api from '../api/apiService';
 
 const AuthContext = createContext(null);
 
-export const useAuth = () => useContext(AuthContext);
-
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('token'));
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        try {
-            const storedUser = JSON.parse(localStorage.getItem('user'));
-            const storedToken = localStorage.getItem('token');
-
-            if (storedUser && storedToken) {
-                setUser(storedUser);
-                setToken(storedToken);
-                setIsAuthenticated(true);
+        const token = localStorage.getItem('token');
+        if (token) {
+            // You might want to verify the token with the backend here
+            // For simplicity, we'll just decode it or fetch user profile
+            // Here we assume if a token exists, the user is "logged in".
+            // A better approach is to have an endpoint like /api/auth/me
+            const storedUser = localStorage.getItem('user');
+            if(storedUser) {
+                setUser(JSON.parse(storedUser));
             }
-        } catch (error) {
-            // If parsing fails, clear storage
-            logout();
         }
+        setLoading(false);
     }, []);
 
-    const login = (userData, userToken) => {
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('token', userToken);
-        setUser(userData);
-        setToken(userToken);
-        setIsAuthenticated(true);
-        toast.success(`Welcome, ${userData.username}!`);
+    const loginWithGoogle = async (idToken, callback) => {
+        try {
+            const { data } = await api.post('/api/auth/google-login', { token: idToken });
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            setUser(data.user);
+            if (callback) callback();
+        } catch (error) {
+            console.error('Error during Google login:', error);
+            throw error;
+        }
     };
 
     const logout = () => {
-        localStorage.removeItem('user');
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setUser(null);
-        setToken(null);
-        setIsAuthenticated(false);
-        toast.info("You have been logged out.");
     };
 
-    const value = {
+    const authContextValue = {
         user,
-        token,
-        isAuthenticated,
-        login,
+        isAuthenticated: !!user,
+        loading,
+        loginWithGoogle,
         logout,
     };
 
     return (
-        <AuthContext.Provider value={value}>
-            {children}
+        <AuthContext.Provider value={authContextValue}>
+            {!loading && children}
         </AuthContext.Provider>
     );
+};
+
+export const useAuth = () => {
+    return useContext(AuthContext);
 };
