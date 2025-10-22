@@ -1,0 +1,157 @@
+/* src/pages/TripResult.css (Moved from styles/ResultPage.css) */
+.trip-result-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem 2.5rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: 'Inter', sans-serif;
+  color: #333;
+}
+
+.trip-result-container h2 {
+  text-align: center;
+  color: #0056b3;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 0.5rem;
+}
+
+.trip-summary {
+    background-color: #f8f9fa;
+    padding: 1rem 1.5rem;
+    border-radius: 5px;
+    margin-bottom: 2rem;
+    border: 1px solid #e9ecef;
+}
+
+.trip-summary p {
+    margin: 0.4rem 0;
+    font-size: 1rem;
+    color: #495057;
+}
+
+.trip-summary strong {
+    color: #343a40;
+}
+
+
+.itinerary-section,
+.recommendations-section {
+    margin-bottom: 2.5rem;
+}
+
+.itinerary-section h3,
+.recommendations-section h3 {
+    color: #007bff;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 0.4rem;
+}
+
+
+.day-plan {
+    margin-bottom: 1.5rem;
+    padding-left: 1rem;
+    border-left: 3px solid #007bff;
+}
+
+.day-plan h3 {
+    font-size: 1.3rem;
+    color: #333;
+    margin-bottom: 0.5rem;
+    border-bottom: none; /* Override section header border */
+    padding-bottom: 0;
+}
+
+.day-plan p {
+    line-height: 1.6;
+    margin-bottom: 0.8rem;
+    color: #555;
+}
+
+.day-plan ul {
+    list-style: disc;
+    margin-left: 1.5rem;
+    padding-left: 0.5rem;
+}
+
+.day-plan li {
+    margin-bottom: 0.4rem;
+    color: #444;
+}
+
+.recommendations-section ul {
+     list-style: disc;
+    margin-left: 1.5rem;
+    padding-left: 0.5rem;
+}
+.recommendations-section li {
+     margin-bottom: 0.4rem;
+    color: #444;
+}
+
+.loading-message,
+.error-container {
+    text-align: center;
+    padding: 3rem 1rem;
+    font-size: 1.2rem;
+    color: #555;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1.5rem;
+    display: inline-block; /* Prevent full width */
+}
+
+.back-link,
+.back-button {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.7rem 1.5rem;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.back-link:hover,
+.back-button:hover {
+    background-color: #0056b3;
+}
+
+.back-button {
+    width: auto; /* Override default button width if needed */
+    margin: 2rem auto 0; /* Center button */
+    display: block; /* Make it a block for auto margin */
+}
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .trip-result-container {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+   .trip-result-container h2 {
+    font-size: 1.8rem;
+   }
+    .day-plan h3 {
+        font-size: 1.2rem;
+    }
+}

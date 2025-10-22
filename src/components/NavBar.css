@@ -1,0 +1,129 @@
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: #f8f9fa; /* Light background */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky; /* Make navbar sticky */
+    top: 0;
+    z-index: 1000; /* Ensure it's above other content */
+    width: 100%;
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+.navbar-brand a {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    text-decoration: none;
+}
+
+.navbar-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem; /* Space between links/buttons */
+}
+
+.navbar-links a {
+    text-decoration: none;
+    color: #555;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.navbar-links a:hover {
+    color: #007bff; /* Highlight color on hover */
+}
+
+/* Base button styling */
+.navbar-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none; /* Remove underline from Link styled as button */
+    display: inline-block; /* Ensure Link behaves like a button */
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-size: 1rem; /* Consistent font size */
+}
+
+/* Logout button specific style */
+.logout-button {
+    background-color: #dc3545; /* Red */
+    color: white;
+}
+
+.logout-button:hover {
+    background-color: #c82333; /* Darker red on hover */
+}
+
+/* Login button specific style */
+.login-button {
+    background-color: #007bff; /* Blue */
+    color: white;
+    border: 1px solid #007bff;
+}
+
+.login-button:hover {
+    background-color: #0056b3; /* Darker blue */
+    border-color: #0056b3;
+}
+
+/* Register button specific style */
+.register-button {
+    background-color: transparent;
+    color: #007bff; /* Blue text */
+    border: 1px solid #007bff; /* Blue border */
+}
+
+.register-button:hover {
+    background-color: #e2e6ea; /* Light grey background on hover */
+    color: #0056b3; /* Darker blue text */
+    border-color: #0056b3; /* Darker blue border */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem;
+    }
+
+    .navbar-links {
+        margin-top: 1rem;
+        width: 100%;
+        justify-content: flex-start; /* Align items to start */
+        gap: 1rem; /* Adjust gap for smaller screens */
+    }
+
+    .navbar-button {
+        padding: 0.4rem 0.8rem; /* Slightly smaller padding */
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar-brand a {
+        font-size: 1.3rem;
+    }
+
+    .navbar-links {
+        flex-direction: column; /* Stack links vertically on very small screens */
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .navbar-button {
+       width: 100%; /* Make buttons full width */
+       box-sizing: border-box; /* Include padding/border in width */
+       margin-bottom: 0.5rem; /* Add some space between stacked buttons */
+    }
+
+    .navbar-button:last-child {
+       margin-bottom: 0;
+    }
+}
+

@@ -1,0 +1,214 @@
+/* General Home Container */
+.home-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif; /* Consistent font */
+}
+
+/* Header Styling */
+.home-header {
+    background-color: #f8f9fa; /* Light background */
+    padding: 2rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.home-header h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    color: #333;
+}
+
+.home-header p {
+    margin-top: 0.5rem;
+    font-size: 1.1rem;
+    color: #666;
+}
+
+/* Main Content Area */
+.home-main {
+    flex-grow: 1; /* Allows main to fill available space */
+    display: flex;
+    flex-direction: column; /* Stack content and illustration vertically on small screens */
+    align-items: center;
+    justify-content: center; /* Center items vertically and horizontally */
+    padding: 2rem 1rem; /* Padding around main content */
+    gap: 2rem; /* Space between content and illustration */
+}
+
+/* Responsive layout for main content */
+@media (min-width: 768px) {
+    .home-main {
+        flex-direction: row; /* Side-by-side layout on larger screens */
+        justify-content: space-around; /* Space out content and illustration */
+        align-items: center; /* Vertically center content and illustration */
+        padding: 3rem 2rem;
+    }
+}
+
+/* Content block (text and buttons) */
+.home-content {
+    flex: 1; /* Allow content to take available space */
+    max-width: 500px; /* Limit width for readability */
+    text-align: center; /* Center text on small screens */
+}
+
+@media (min-width: 768px) {
+    .home-content {
+        text-align: center; /* Center text on larger screens too */
+        max-width: 450px; /* Adjust max-width if needed */
+        flex: 0 1 450px; /* Prevent it from growing too much */
+    }
+}
+
+
+.home-content h2 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.home-content p {
+    font-size: 1rem;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+/* Call to Action (Buttons) container */
+.home-cta {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column; /* Stack buttons vertically */
+    align-items: center; /* Center buttons horizontally */
+    gap: 1rem; /* Space between buttons */
+}
+
+@media (min-width: 768px) {
+    .home-cta {
+         /* Keep buttons stacked vertically but centered */
+         align-items: center;
+    }
+}
+
+
+/* Base Google Button Styling */
+.google-button {
+    display: inline-flex; /* Use flex to align icon and text */
+    align-items: center;
+    justify-content: center; /* Center content horizontally */
+    padding: 10px 20px;
+    border: 1px solid #dadce0; /* Standard Google border color */
+    border-radius: 8px; /* Slightly more rounded */
+    background-color: white;
+    color: #3c4043; /* Standard Google text color */
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    min-width: 220px; /* Ensure buttons have a minimum width */
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15); /* Subtle shadow */
+    gap: 10px; /* Space between logo and text */
+    width: 100%; /* Make buttons take full width of container on small screens */
+    max-width: 250px; /* Limit max width */
+    text-align: center; /* Ensure text is centered if flex justification changes */
+}
+
+@media (min-width: 768px) {
+    .google-button {
+         width: auto; /* Allow buttons to size to content on larger screens */
+         min-width: 240px; /* Slightly wider minimum width on larger screens */
+    }
+}
+
+
+.google-button:hover {
+    background-color: #f8f9fa; /* Slightly off-white on hover */
+    border-color: #c6c6c6;
+    box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15); /* Enhance shadow on hover */
+}
+
+.google-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+    background-color: #eee;
+}
+
+.google-button svg {
+    display: block; /* Remove extra space below SVG */
+}
+
+/* Specific button styling */
+.google-signin-button {
+    /* Standard Google button look */
+    background-color: white;
+    border-color: #dadce0;
+}
+
+/* --- UPDATED REGISTER BUTTON STYLE --- */
+.google-register-button {
+    background-color: #34A853; /* Google Green */
+    border-color: #2e8a49; /* Darker Green Border */
+    color: white; /* White text */
+    gap: 0; /* No gap needed as logo is removed */
+    justify-content: center; /* Ensure text remains centered */
+}
+
+.google-register-button:hover {
+    background-color: #2e8a49; /* Darker green on hover */
+    border-color: #1e6e3a; /* Even darker border on hover */
+    box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15);
+}
+
+
+/* Illustration Styling --- UPDATED SIZES --- */
+.home-illustration {
+    flex: 1; /* Allow illustration to take available space */
+    max-width: 90%; /* Size for smaller screens */
+    text-align: center; /* Center image within its container */
+}
+
+.home-illustration img {
+    max-width: 100%; /* Ensure image scales down */
+    height: auto; /* Maintain aspect ratio */
+    border-radius: 8px; /* Optional: add rounded corners */
+}
+
+@media (min-width: 768px) {
+   .home-illustration {
+     max-width: 550px; /* Size for medium screens */
+     flex: 0 1 550px; /* Define basis and prevent growing too large */
+   }
+}
+
+@media (min-width: 1024px) {
+   .home-illustration {
+     max-width: 750px; /* Increased size significantly for large screens */
+     flex-basis: 750px; /* Explicitly set basis */
+   }
+   /* Adjust content flex basis if needed to balance */
+   .home-content {
+       flex-basis: 400px;
+       flex-grow: 0; /* Prevent content from growing too much */
+   }
+}
+
+
+/* Footer Styling */
+.home-footer {
+    background-color: #343a40; /* Dark footer */
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    margin-top: auto; /* Pushes footer to the bottom */
+}
+
+/* Error Message */
+.error-message {
+    color: #dc3545; /* Red color for errors */
+    font-weight: 500;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem; /* Adjust spacing */
+}
+

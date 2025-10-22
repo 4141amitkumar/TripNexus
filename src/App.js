@@ -1,37 +1,85 @@
+// src/App.js
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { GoogleOAuthProvider } from '@react-oauth/google';
-import LandingPage from './pages/LandingPage';
-import FormPage from './components/FormPage';
-import ResultPage from './components/ResultPage';
-import DetailsPage from './components/DetailsPage';
-import Header from './components/common/Header';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from './context/AuthContext'; // Import useAuth hook
+
+// Import Pages
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import TripPlan from './pages/TripPlan';
+import TripDetails from './pages/TripDetails'; // Assuming you create this page
+import TripResult from './pages/TripResult';   // Assuming you create this page
+
+// Import Components
+import NavBar from './components/NavBar';
+
+// Import CSS
 import './App.css';
 
-function App() {
-  const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-
-  if (!clientId) {
-    console.error("Google Client ID not found. Make sure you have set REACT_APP_GOOGLE_CLIENT_ID in your .env file.");
+// ProtectedRoute component
+function ProtectedRoute({ children }) {
+  const { currentUser } = useAuth();
+  if (!currentUser) {
+    // Redirect them to the /login page, but save the current location they were
+    // trying to go to when they were redirected. This allows us to send them
+    // along to that page after they login, which is a nicer user experience
+    // than dropping them off on the home page.
+    return <Navigate to="/login" replace />;
   }
+  return children;
+}
+
+
+function App() {
+  const location = useLocation();
+  const { currentUser } = useAuth();
+
+  // Determine if NavBar should be shown
+  const showNavBar = !['/', '/login', '/register'].includes(location.pathname) || currentUser;
 
   return (
-    <GoogleOAuthProvider clientId={clientId}>
-      <AuthProvider>
-        <Router>
-          <Header />
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/form" element={<FormPage />} />
-            <Route path="/results" element={<ResultPage />} />
-            <Route path="/details" element={<DetailsPage />} />
-          </Routes>
-        </Router>
-      </AuthProvider>
-    </GoogleOAuthProvider>
+    <div className="App">
+      {showNavBar && <NavBar />}
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/trip-plan"
+          element={
+            <ProtectedRoute>
+              <TripPlan />
+            </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/trip-details"
+          element={
+            <ProtectedRoute>
+              <TripDetails />
+            </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/trip-result"
+          element={
+            <ProtectedRoute>
+              <TripResult />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch-all or 404 Route (optional) */}
+        {/* <Route path="*" element={<NotFound />} /> */}
+        <Route path="*" element={<Navigate to={currentUser ? "/trip-plan" : "/"} replace />} />
+
+      </Routes>
+    </div>
   );
 }
 
 export default App;
-
